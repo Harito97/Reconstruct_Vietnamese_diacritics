@@ -33,7 +33,7 @@ def load_model(model_path, input_dim=150, hidden_dim=150, dropout_rate=0.2):
     Load mô hình từ file đã lưu.
     """
     model = ANN(input_dim=input_dim, hidden_dim=hidden_dim, dropout_rate=dropout_rate)
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, weights_only=True))
     model.eval()
     return model
 
@@ -57,9 +57,10 @@ def convert_text_to_unicode(text, token_size=150):
 
 def unicode_to_text(unicode_list):
     """
-    Chuyển danh sách mã Unicode ngược lại thành chuỗi.
+    Chuyển danh sách mã Unicode thành chuỗi, đảm bảo giá trị nằm trong phạm vi hợp lệ.
     """
-    return ''.join(chr(int(round(num))) for num in unicode_list if int(round(num)) != 0)
+    valid_range = range(0x110000)  # Phạm vi Unicode hợp lệ
+    return ''.join(chr(max(0, min(int(round(num)), 0x10FFFF))) for num in unicode_list if int(round(num)) in valid_range)
 
 def predict_with_models(sentence, model_train, model_val, device="cpu"):
     """

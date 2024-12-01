@@ -53,8 +53,8 @@ def test():
 def main():
     # Remove Vietnamese accent from a text file and save the result to another file
     print("Starting remove Vietnamese accent from a text file and save the result to another file ...")
-    file_to_process = "../../data/raw/corpus-title.txt" # Output data for the model
-    file_to_save_no_accent = "../../data/processed/corpus-title-no-accent.txt"  # Input data for the model
+    file_to_process = "./data/raw/corpus-title.txt" # Output data for the model
+    file_to_save_no_accent = "./data/processed/corpus-title-no-accent.txt"  # Input data for the model
     with open(file_to_process, "r", encoding="utf-8") as f_in, \
          open(file_to_save_no_accent, "w", encoding="utf-8") as f_out:
         for line in f_in:
@@ -65,7 +65,7 @@ def main():
 
     # Convert the original file to Unicode and save the result to another file
     print("Starting convert the original file to Unicode and save the result to another file ...")
-    file_to_save_unicode = "../../data/processed/corpus-title-unicode.txt"  # Output data for the model
+    file_to_save_unicode = "./data/processed/corpus-title-unicode.txt"  # Output data for the model
     with open(file_to_process, "r", encoding="utf-8") as f_in, \
          open(file_to_save_unicode, "w", encoding="utf-8") as f_out:
         for line in f_in:
@@ -77,7 +77,7 @@ def main():
 
     # Convert the no-accent file to Unicode and save the result to another file
     print("Starting convert the no-accent file to Unicode and save the result to another file ...")
-    file_to_save_no_accent_unicode = "../../data/processed/corpus-title-no-accent-unicode.txt"  # Input data for the model
+    file_to_save_no_accent_unicode = "./data/processed/corpus-title-no-accent-unicode.txt"  # Input data for the model
     with open(file_to_save_no_accent, "r", encoding="utf-8") as f_in, \
          open(file_to_save_no_accent_unicode, "w", encoding="utf-8") as f_out:
         for line in f_in:

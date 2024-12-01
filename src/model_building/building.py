@@ -6,8 +6,8 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
 
 # Đường dẫn dữ liệu
-input_file_path = "../../data/processed/corpus-title-no-accent-unicode.txt"  # Dữ liệu đầu vào
-output_file_path = "../../data/processed/corpus-title-unicode.txt"          # Dữ liệu đầu ra
+input_file_path = "./data/processed/corpus-title-no-accent-unicode.txt"  # Dữ liệu đầu vào
+output_file_path = "./data/processed/corpus-title-unicode.txt"          # Dữ liệu đầu ra
 
 def load_data(input_file, output_file):
     """
@@ -111,9 +111,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
 
     # Lưu hai model
     print("Saving best train model...")
-    torch.save(best_train_model, "../../models/vietnamese_diacritics_best_train.pth")
+    torch.save(best_train_model, "./models/vietnamese_diacritics_best_train.pth")
     print("Saving best validation model...")
-    torch.save(best_val_model, "../../models/vietnamese_diacritics_best_val.pth")
+    torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
 
 def predict(model, X, device="cpu"):
     """
@@ -168,6 +168,7 @@ def main():
 
     # Huấn luyện mô hình
     print("Training model...")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device="cpu")
 
     # Kiểm tra mô hình

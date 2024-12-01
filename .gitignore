@@ -1,0 +1,9 @@
+temp*
+
+# to large to be uploaded
+data/corpus-title.tar.gz
+
+data/raw/corpus-title.txt
+data/processed/corpus-title-no-accent.txt
+data/processed/corpus-title-unicode.txt
+data/processed/corpus-title-no-accent-unicode.txt

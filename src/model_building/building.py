@@ -1,33 +1,28 @@
-# src/model_building/building.py
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset, random_split
+from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+import os
 
 # Đường dẫn dữ liệu
 input_file_path = "./data/processed/corpus-title-no-accent-unicode.txt"  # Dữ liệu đầu vào
 output_file_path = "./data/processed/corpus-title-unicode.txt"          # Dữ liệu đầu ra
 
+# Hàm load data (không thay đổi)
 def load_data(input_file, output_file):
-    """
-    Load dữ liệu từ file và chuyển đổi thành Tensor.
-    """
     with open(input_file, "r", encoding="utf-8") as f_in:
         X = [list(map(int, line.strip().split())) for line in f_in]
 
     with open(output_file, "r", encoding="utf-8") as f_out:
         y = [list(map(int, line.strip().split())) for line in f_out]
 
-    # Chuyển sang Tensor
     X = torch.tensor(X, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
     return X, y
 
+# Lớp ANN (không thay đổi)
 class ANN(nn.Module):
-    """
-    Mạng ANN với 5 lớp dense, mỗi lớp có 150 neuron.
-    """
     def __init__(self, input_dim=150, hidden_dim=150, dropout_rate=0.2):
         super(ANN, self).__init__()
         self.model = nn.Sequential(
@@ -53,12 +48,8 @@ class ANN(nn.Module):
         x = self.output_layer(x)
         return x
 
+# Hàm train_model (không thay đổi)
 def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device="cpu"):
-    """
-    Huấn luyện mô hình và lưu hai phiên bản:
-    - Mô hình có loss thấp nhất trên tập train.
-    - Mô hình có loss thấp nhất trên tập validation.
-    """
     model = model.to(device)
     best_train_loss = float('inf')
     best_val_loss = float('inf')
@@ -66,17 +57,14 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
     best_val_model = None
 
     for epoch in range(epochs):
-        # Huấn luyện
         model.train()
         train_loss = 0.0
         for X_batch, y_batch in train_loader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
 
-            # Forward pass
             predictions = model(X_batch)
             loss = criterion(predictions, y_batch)
 
-            # Backward pass
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -85,7 +73,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
 
         train_loss /= len(train_loader)
 
-        # Validation
         model.eval()
         val_loss = 0.0
         with torch.no_grad():
@@ -95,94 +82,59 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
                 loss = criterion(predictions, y_val)
                 val_loss += loss.item()
 
-        val_loss /= len(val_loader)
+        if len(val_loader) > 0:
+            val_loss /= len(val_loader)
+        else:
+            print("Warning: Validation loader is empty!")
+            val_loss = float('inf')  # Hoặc giá trị mặc định khác
 
         print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}")
 
-        # Lưu model tốt nhất trên tập train
         if train_loss < best_train_loss:
             best_train_loss = train_loss
             best_train_model = model.state_dict()
-            print("Saving best train model...")
             torch.save(best_train_model, "./models/vietnamese_diacritics_best_train.pth")
 
-        # Lưu model tốt nhất trên tập validation
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_val_model = model.state_dict()
-            print("Saving best validation model...")
             torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
 
-def predict(model, X, device="cpu"):
-    """
-    Dự đoán đầu ra và làm tròn về số nguyên gần nhất.
-    """
-    model = model.to(device)
-    model.eval()
-    with torch.no_grad():
-        X = X.to(device)
-        predictions = model(X)
-        predictions = torch.round(predictions).long()
-    return predictions.cpu().numpy()
+# Hàm chính với tối ưu đa nhân
+def main(batch_size=20 * 10**3 * 6 * 3):
+    # 30 GB RAM => 90 GB RAM
+    # Phát hiện số nhân CPU
+    num_workers = os.cpu_count() if os.cpu_count() else 20  # Mặc định 20 nếu không xác định được số nhân
+    print(f"Using {num_workers} workers for data loading.")
 
-def unicode_to_text(unicode_list):
-    """
-    Chuyển đổi danh sách mã Unicode thành chuỗi ký tự.
-    """
-    return "".join(chr(code) for code in unicode_list if code > 0)
-
-def try_model(model, X):
-    # Test mô hình
-    print("Testing model...")
-    test_input = X[30:]  # Lấy 30 dòng để kiểm tra
-    predictions = predict(model, test_input)
-
-    # Chuyển đổi mã Unicode thành text để kiểm tra
-    for i in range(len(test_input)):
-        input_text = unicode_to_text(test_input[i].tolist())
-        predicted_text = unicode_to_text(predictions[i].tolist())
-        print(f"Input: {input_text}")
-        print(f"Prediction: {predicted_text}")
-
-    # ---
-
-    test_input = X[:30]  # Lấy 30 dòng để kiểm tra
-    predictions = predict(model, test_input)
-
-    # Chuyển đổi mã Unicode thành text để kiểm tra
-    for i in range(len(test_input)):
-        input_text = unicode_to_text(test_input[i].tolist())
-        predicted_text = unicode_to_text(predictions[i].tolist())
-        print(f"Input: {input_text}")
-        print(f"Prediction: {predicted_text}")
-
-def main(batch_size=20 * 10 ** 3 * 6):
     # Load dữ liệu
     print("Loading data...")
     X, y = load_data(input_file_path, output_file_path)
 
-    # Chia dữ liệu thành tập train và validation
-    num_train = 9 * 10 ** 9  # 9 triệu record
-    num_val = len(X) - num_train
+    # Chia dữ liệu
+    num_train = 9 * 10 ** 6
     train_data = TensorDataset(X[:num_train], y[:num_train])
     val_data = TensorDataset(X[num_train:], y[num_train:])
 
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=batch_size)
+    # Tạo DataLoader với tối ưu đa nhân
+    train_loader = DataLoader(
+        train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True
+    )
+    val_batch_size = min(9487416 - 9000000, len(val_data))  # Batch size tối đa bằng kích thước tập validation
+    val_loader = DataLoader(
+        val_data, batch_size=val_batch_size, num_workers=num_workers, pin_memory=True
+    )
 
     # Xây dựng mô hình
     print("Building model...")
     model = ANN(input_dim=150, hidden_dim=150, dropout_rate=0.2)
-    criterion = nn.MSELoss()  # Loss cho bài toán hồi quy
+    criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Huấn luyện mô hình
     print("Training model...")
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device="cpu")
+    train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device=device)
 
-    # Kiểm tra mô hình
-    try_model(model, X)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -5,6 +5,10 @@
 nohup python main.py processing > logs/data_processing.log 2>&1 &
 # about 7m
 nohup python main.py building > logs/model_building.log 2>&1 &
+# about 20m (on CPU 20 cores) for loading data
+# about 30-60 GB of RAM be used to train the model
+# with batch_size=20 * 10**3 * 6 * 3
+# about 1h to train the model with 20 epochs
 ```
 
 ## Try to reconstruct Vietnamese diacritics

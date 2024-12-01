@@ -81,8 +81,8 @@ def predict_with_models(sentence, model_train, model_val, device="cpu"):
 
 def main():
     # Load hai mô hình
-    model_train_path = "../../models/vietnamese_diacritics_best_train.pth"
-    model_val_path = "../../models/vietnamese_diacritics_best_val.pth"
+    model_train_path = "./models/vietnamese_diacritics_best_train.pth"
+    model_val_path = "./models/vietnamese_diacritics_best_val.pth"
 
     print("Loading models...")
     model_train = load_model(model_train_path)

@@ -100,6 +100,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
             best_val_model = model.state_dict()
             torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
 
+def model_info():
+    # Hiển thị thông tin về mô hình
+    # number of parameters
+    # model architecture
+    model = ANN(input_dim=150, hidden_dim=150, dropout_rate=0.2)
+    print(model)
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
+
+
 # Hàm chính với tối ưu đa nhân
 def main(batch_size=20 * 10**3 * 6 * 3):
     # 30 GB RAM => 90 GB RAM

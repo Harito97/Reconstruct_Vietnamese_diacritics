@@ -1,4 +1,7 @@
+# temp
 temp*
+# run files
+*__pycache__*
 
 # to large to be uploaded
 data/corpus-title.tar.gz

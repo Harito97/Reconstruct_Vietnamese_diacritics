@@ -103,17 +103,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20
         if train_loss < best_train_loss:
             best_train_loss = train_loss
             best_train_model = model.state_dict()
+            print("Saving best train model...")
+            torch.save(best_train_model, "./models/vietnamese_diacritics_best_train.pth")
 
         # Lưu model tốt nhất trên tập validation
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             best_val_model = model.state_dict()
-
-    # Lưu hai model
-    print("Saving best train model...")
-    torch.save(best_train_model, "./models/vietnamese_diacritics_best_train.pth")
-    print("Saving best validation model...")
-    torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
+            print("Saving best validation model...")
+            torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
 
 def predict(model, X, device="cpu"):
     """
@@ -136,7 +134,7 @@ def unicode_to_text(unicode_list):
 def try_model(model, X):
     # Test mô hình
     print("Testing model...")
-    test_input = X[:10]  # Lấy 10 dòng đầu tiên để kiểm tra
+    test_input = X[30:]  # Lấy 30 dòng để kiểm tra
     predictions = predict(model, test_input)
 
     # Chuyển đổi mã Unicode thành text để kiểm tra
@@ -146,7 +144,19 @@ def try_model(model, X):
         print(f"Input: {input_text}")
         print(f"Prediction: {predicted_text}")
 
-def main():
+    # ---
+
+    test_input = X[:30]  # Lấy 30 dòng để kiểm tra
+    predictions = predict(model, test_input)
+
+    # Chuyển đổi mã Unicode thành text để kiểm tra
+    for i in range(len(test_input)):
+        input_text = unicode_to_text(test_input[i].tolist())
+        predicted_text = unicode_to_text(predictions[i].tolist())
+        print(f"Input: {input_text}")
+        print(f"Prediction: {predicted_text}")
+
+def main(batch_size=20 * 10 ** 3 * 6):
     # Load dữ liệu
     print("Loading data...")
     X, y = load_data(input_file_path, output_file_path)
@@ -157,8 +167,8 @@ def main():
     train_data = TensorDataset(X[:num_train], y[:num_train])
     val_data = TensorDataset(X[num_train:], y[num_train:])
 
-    train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=64)
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_data, batch_size=batch_size)
 
     # Xây dựng mô hình
     print("Building model...")

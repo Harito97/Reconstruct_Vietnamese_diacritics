@@ -3,6 +3,7 @@
 ## Data processing & model training
 ```bash
 nohup python main.py processing > logs/data_processing.log 2>&1 &
+# about 7m
 nohup python main.py building > logs/model_building.log 2>&1 &
 ```
 

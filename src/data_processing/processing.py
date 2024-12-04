@@ -6,10 +6,12 @@ from multiprocessing import Pool, cpu_count
 
 # Bảng dictionary ký tự
 input_dictionary = list("aáàảãạăắằẳẵặâấầẩẫậdđeéèẻẽẹêếềểễệiíìỉĩịoóòỏõọôốồổỗộơớờởỡợuúùủũụưứừửữựyýỳỷỹỵ") + list("bcfghjklmnpqrstvwxz0123456789 ") + list(string.punctuation)
-char_to_index = {char: idx + 1 for idx, char in enumerate(input_dictionary)}  # +1 để 0 dùng cho padding
+output_dictionary = list("aáàảãạăắằẳẵặâấầẩẫậdđeéèẻẽẹêếềểễệoóòỏõọôốồổỗộơớờởỡợiíìỉĩịuúùủũụưứừửữựyýỳỷỹỵ")
+input_char_to_index = {char: idx + 1 for idx, char in enumerate(input_dictionary)}  # +1 để 0 dùng cho padding
+output_char_to_index = {char: idx + 1 for idx, char in enumerate(output_dictionary)}  # +1 để 0 dùng cho padding
 max_length = 150  # Độ dài tối đa của chuỗi
 
-def convert_text_to_indices(text: str, token_size: int = max_length, char_to_index=char_to_index) -> List[int]:
+def convert_text_to_indices(text: str, token_size: int = max_length, char_to_index=input_char_to_index) -> List[int]:
     """
     Chuyển đổi câu thành danh sách index dựa trên dictionary.
     """
@@ -27,8 +29,8 @@ def process_lines(args):
     input_lines, output_lines = args
     X, y = [], []
     for in_line, out_line in zip(input_lines, output_lines):
-        X.append(convert_text_to_indices(in_line.strip()))
-        y.append(convert_text_to_indices(out_line.strip()))
+        X.append(convert_text_to_indices(in_line.strip(), char_to_index=input_char_to_index))
+        y.append(convert_text_to_indices(out_line.strip(), char_to_index=output_char_to_index))
     return X, y
 
 def process_and_save_data(input_file_path: str, output_file_path: str):
@@ -72,8 +74,8 @@ def load_processed_data(X_file_path="./data/processed/X_transformer.pt", y_file_
     """
     Tải dữ liệu đã được xử lý từ file.
     """
-    X = torch.load(X_file_path)
-    y = torch.load(y_file_path)
+    X = torch.load(X_file_path, weights_only=True)
+    y = torch.load(y_file_path, weights_only=True)
     print(f"Data loaded: X -> {X.shape}, y -> {y.shape}")
     return X, y
 

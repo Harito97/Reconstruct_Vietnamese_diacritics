@@ -6,7 +6,6 @@
 # Da chay file nay 1 lan nhung o phien ban 0.0.0
 nohup python main.py collection > logs/data_collection_0_0_1.log 2>&1 &
 # make X, y from text without diacritics and raw text
-# Da chay file nay nhung truoc khi update kieu su dung song song hoa nhieu core cpu
 nohup python main.py processing > logs/data_processing_0_0_1.log 2>&1 &
 # train model
 nohup python main.py building > logs/model_building_0_0_1.log 2>&1 &

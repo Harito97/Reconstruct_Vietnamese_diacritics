@@ -97,8 +97,8 @@ def main():
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
     # Create DataLoader
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_dataset, batch_size=64)
+    train_loader = DataLoader(train_dataset, batch_size=80, shuffle=True, drop_last=False, num_workers=20)
+    val_loader = DataLoader(val_dataset, batch_size=80, num_workers=20)
 
     # Initialize the model
     model = Transformer()

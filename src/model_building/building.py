@@ -1,149 +1,115 @@
+# src/data_processing/processing.py
+import os
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
-import numpy as np
-import os
+from torch.utils.data import DataLoader, TensorDataset, random_split
+from sklearn.metrics import accuracy_score, f1_score
+from src.model_building.model import Transformer
+from src.data_processing.processing import load_processed_data
 
-# Đường dẫn dữ liệu
-input_file_path = "./data/processed/corpus-title-no-accent-unicode.txt"  # Dữ liệu đầu vào
-output_file_path = "./data/processed/corpus-title-unicode.txt"          # Dữ liệu đầu ra
-
-# Hàm load data (không thay đổi)
-def load_data(input_file, output_file):
-    with open(input_file, "r", encoding="utf-8") as f_in:
-        X = [list(map(int, line.strip().split())) for line in f_in]
-
-    with open(output_file, "r", encoding="utf-8") as f_out:
-        y = [list(map(int, line.strip().split())) for line in f_out]
-
-    X = torch.tensor(X, dtype=torch.float32)
-    y = torch.tensor(y, dtype=torch.float32)
-    return X, y
-
-# Lớp ANN (không thay đổi)
-class ANN(nn.Module):
-    def __init__(self, input_dim=150, hidden_dim=150, dropout_rate=0.2):
-        super(ANN, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
-        )
-        self.output_layer = nn.Linear(hidden_dim, input_dim)
-
-    def forward(self, x):
-        x = self.model(x)
-        x = self.output_layer(x)
-        return x
-
-# Hàm train_model (không thay đổi)
 def train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device="cpu"):
     model = model.to(device)
-    best_train_loss = float('inf')
-    best_val_loss = float('inf')
-    best_train_model = None
-    best_val_model = None
+    best_train_loss = float("inf")
+    best_val_loss = float("inf")
+
+    # Tạo thư mục lưu model nếu chưa tồn tại
+    os.makedirs("./models", exist_ok=True)
+    best_train_model_path = "./models/best_train_Transformer_model.pth"
+    best_val_model_path = "./models/best_val_Transformer_model.pth"
 
     for epoch in range(epochs):
         model.train()
-        train_loss = 0.0
+        train_loss, train_correct, train_total = 0.0, 0, 0
+
+        # Training loop
         for X_batch, y_batch in train_loader:
             X_batch, y_batch = X_batch.to(device), y_batch.to(device)
-
-            predictions = model(X_batch)
-            loss = criterion(predictions, y_batch)
-
             optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
 
-            train_loss += loss.item()
+            # Forward pass
+            predictions = model(X_batch)  # [batch_size, seq_len, vocab_size]
+            predictions = predictions.view(-1, predictions.size(-1))  # [N, C]
+            y_batch = y_batch.view(-1)  # [N]
 
-        train_loss /= len(train_loader)
+            loss = criterion(predictions, y_batch)  # CrossEntropyLoss
+            loss.backward()  # Backpropagation
+            optimizer.step()  # Update weights
 
+            train_loss += loss.item() * y_batch.size(0)  # Tổng loss
+            train_correct += (torch.argmax(predictions, dim=-1) == y_batch).sum().item()
+            train_total += y_batch.numel()
+
+        train_loss /= train_total
+        train_acc = train_correct / train_total
+
+        # Validation loop
         model.eval()
-        val_loss = 0.0
+        val_loss, val_correct, val_total = 0.0, 0, 0
+
         with torch.no_grad():
             for X_val, y_val in val_loader:
                 X_val, y_val = X_val.to(device), y_val.to(device)
-                predictions = model(X_val)
-                loss = criterion(predictions, y_val)
-                val_loss += loss.item()
 
-        if len(val_loader) > 0:
-            val_loss /= len(val_loader)
-        else:
-            print("Warning: Validation loader is empty!")
-            val_loss = float('inf')  # Hoặc giá trị mặc định khác
+                predictions = model(X_val)  # [batch_size, seq_len, vocab_size]
+                predictions = predictions.view(-1, predictions.size(-1))  # [N, C]
+                y_val = y_val.view(-1)  # [N]
 
-        print(f"Epoch {epoch+1}/{epochs}, Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}")
+                loss = criterion(predictions, y_val)  # CrossEntropyLoss
+                val_loss += loss.item() * y_val.size(0)  # Tổng loss
+                val_correct += (torch.argmax(predictions, dim=-1) == y_val).sum().item()
+                val_total += y_val.numel()
 
+        val_loss /= val_total
+        val_acc = val_correct / val_total
+
+        # Log kết quả
+        print(f"Epoch {epoch+1}/{epochs}")
+        print(f"  Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.4f}")
+        print(f"  Val Loss:   {val_loss:.4f} | Val Acc:   {val_acc:.4f}")
+
+        # Save best model
         if train_loss < best_train_loss:
             best_train_loss = train_loss
-            best_train_model = model.state_dict()
-            torch.save(best_train_model, "./models/vietnamese_diacritics_best_train.pth")
+            torch.save(model.state_dict(), best_train_model_path)
+            print(f"  Saved best train model with loss {best_train_loss}.")
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            best_val_model = model.state_dict()
-            torch.save(best_val_model, "./models/vietnamese_diacritics_best_val.pth")
+            torch.save(model.state_dict(), best_val_model_path)
+            print(f"  Saved best val model with loss {best_val_loss}.")
 
-def model_info():
-    # Hiển thị thông tin về mô hình
-    # number of parameters
-    # model architecture
-    model = ANN(input_dim=150, hidden_dim=150, dropout_rate=0.2)
-    print(model)
-    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
+    print("Training complete.")
+    print(f"Best training loss: {best_train_loss:.4f}")
+    print(f"Best validation loss: {best_val_loss:.4f}")
 
 
-# Hàm chính với tối ưu đa nhân
-def main(batch_size=20 * 10**3 * 6 * 3):
-    # 30 GB RAM => 90 GB RAM
-    # Phát hiện số nhân CPU
-    num_workers = os.cpu_count() if os.cpu_count() else 20  # Mặc định 20 nếu không xác định được số nhân
-    print(f"Using {num_workers} workers for data loading.")
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Load dữ liệu
-    print("Loading data...")
-    X, y = load_data(input_file_path, output_file_path)
+    # Load processed data
+    X, y = load_processed_data()
+    dataset = TensorDataset(X, y)
 
-    # Chia dữ liệu
-    num_train = 9 * 10 ** 6
-    train_data = TensorDataset(X[:num_train], y[:num_train])
-    val_data = TensorDataset(X[num_train:], y[num_train:])
+    # Split into train and validation sets
+    train_ratio = 0.8  # 80% train, 20% validation
+    train_size = int(len(dataset) * train_ratio)
+    val_size = len(dataset) - train_size
+    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    # Tạo DataLoader với tối ưu đa nhân
-    train_loader = DataLoader(
-        train_data, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True
-    )
-    val_batch_size = min(9487416 - 9000000, len(val_data))  # Batch size tối đa bằng kích thước tập validation
-    val_loader = DataLoader(
-        val_data, batch_size=val_batch_size, num_workers=num_workers, pin_memory=True
-    )
+    # Create DataLoader
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=True)
+    val_loader = DataLoader(val_dataset, batch_size=64)
 
-    # Xây dựng mô hình
-    print("Building model...")
-    model = ANN(input_dim=150, hidden_dim=150, dropout_rate=0.2)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # Initialize the model
+    model = Transformer()
+    model = model.to(device)
 
-    # Huấn luyện mô hình
-    print("Training model...")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device=device)
+    # Define loss function and optimizer
+    criterion = nn.CrossEntropyLoss(ignore_index=0)  # Padding index = 0
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    # Train the model
+    train_model(model, "transformer", train_loader, val_loader, criterion, optimizer, epochs=20, device=device)
 
 if __name__ == "__main__":
     main()

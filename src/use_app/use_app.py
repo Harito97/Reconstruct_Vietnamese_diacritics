@@ -1,112 +1,61 @@
 import torch
-import torch.nn as nn
-
-# Mô hình ANN
-class ANN(nn.Module):
-    def __init__(self, input_dim=150, hidden_dim=150, dropout_rate=0.2):
-        super(ANN, self).__init__()
-        self.model = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
-        )
-        self.output_layer = nn.Linear(hidden_dim, input_dim)
-
-    def forward(self, x):
-        x = self.model(x)
-        x = self.output_layer(x)
-        return x
-
-def load_model(model_path, input_dim=150, hidden_dim=150, dropout_rate=0.2):
-    """
-    Load mô hình từ file đã lưu.
-    """
-    model = ANN(input_dim=input_dim, hidden_dim=hidden_dim, dropout_rate=dropout_rate)
-    model.load_state_dict(torch.load(model_path, weights_only=True))
-    model.eval()
-    return model
+import unidecode
+from src.model_building.model import Transformer
 
 def remove_vietnamese_accent(text):
-    """
-    Loại bỏ dấu tiếng Việt khỏi một câu.
-    """
-    import unidecode
+    # Input: string
+    # Output: string
+    # Example: remove_vietnamese_accent("Hôm nay trời đẹp quá!") -> "Hom nay troi dep qua!"
+    # ---
+    # Use:
+    # original_text = "Tôi yêu Việt Nam"
+    # text_without_accent = remove_vietnamese_accent(original_text)
+    # print(text_without_accent)
+    # # Result: "Toi yeu Viet Nam"
+    # ---
+    # pip install unidecode
     return unidecode.unidecode(text)
 
-def convert_text_to_unicode(text, token_size=150):
-    """
-    Chuyển đổi một chuỗi ký tự sang mã Unicode, đảm bảo kích thước cố định.
-    """
-    result = [ord(char) for char in text]
-    if len(result) > token_size:
-        result = result[:token_size]
-    elif len(result) < token_size:
-        result += [0] * (token_size - len(result))
-    return result
-
-def unicode_to_text(unicode_list):
-    """
-    Chuyển danh sách mã Unicode thành chuỗi, đảm bảo giá trị nằm trong phạm vi hợp lệ.
-    """
-    valid_range = range(0x110000)  # Phạm vi Unicode hợp lệ
-    return ''.join(chr(max(0, min(int(round(num)), 0x10FFFF))) for num in unicode_list if int(round(num)) in valid_range)
-
-def predict_with_models(sentence, model_train, model_val, device="cpu"):
-    """
-    Chạy dự đoán với hai mô hình đã lưu.
-    """
-    # Chuyển câu thành Unicode vector
-    input_vector = convert_text_to_unicode(remove_vietnamese_accent(sentence))
-    input_tensor = torch.tensor([input_vector], dtype=torch.float32).to(device)
-
-    # Dự đoán với từng mô hình
-    output_train = model_train(input_tensor).detach().cpu().numpy()[0]
-    output_val = model_val(input_tensor).detach().cpu().numpy()[0]
-
-    # Làm tròn và chuyển về chuỗi ký tự
-    predicted_text_train = unicode_to_text(output_train)
-    predicted_text_val = unicode_to_text(output_val)
-
-    return predicted_text_train, predicted_text_val
-
 def main():
-    # Load hai mô hình
-    model_train_path = "./models/vietnamese_diacritics_best_train.pth"
-    model_val_path = "./models/vietnamese_diacritics_best_val.pth"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    print("Loading models...")
-    model_train = load_model(model_train_path)
-    model_val = load_model(model_val_path)
+    # Load mô hình đã huấn luyện
+    model_path = "./models/best_val_Transformer_model.pth"  # Đường dẫn tới file mô hình tốt nhất
+    model = Transformer().to(device)
+    model.load_model(model_path)
+    print("Mô hình đã được tải thành công!")
 
-    # Chọn device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model_train.to(device)
-    model_val.to(device)
-
-    print("Models loaded!")
+    # Giao diện người dùng
+    print("\nChọn tùy chọn:")
+    print("1: Nhập một câu có dấu và kiểm tra dự đoán khôi phục dấu từ câu không dấu.")
+    print("2: Nhập một câu không dấu để mô hình dự đoán thêm dấu.")
+    print("q: Thoát.")
 
     while True:
-        # Nhập câu từ người dùng
-        input_sentence = input("\nEnter a sentence (or type 'exit' to quit): ")
-        if input_sentence.lower() == "exit":
+        option = input("\nChọn (1/2/q): ").strip()
+        if option == "q":
+            print("Thoát chương trình.")
             break
 
-        # In ra kết quả dự đoán từ hai mô hình
-        predicted_train, predicted_val = predict_with_models(input_sentence, model_train, model_val, device)
-        print(f"\nOriginal Sentence: {input_sentence}")
-        print(f"Predicted by Train Model: {predicted_train}")
-        print(f"Predicted by Validation Model: {predicted_val}")
+        elif option == "1":
+            # Chế độ kiểm tra với câu có dấu
+            input_text = input("Nhập câu có dấu: ").strip()
+            no_accent_text = remove_vietnamese_accent(input_text)
+            print(f"Câu không dấu: {no_accent_text}")
+
+            prediction = model.predict(no_accent_text)
+            print(f"Dự đoán thêm dấu: {prediction}")
+            print(f"So sánh:\n  Gốc: {input_text}\n  Dự đoán: {prediction}")
+
+        elif option == "2":
+            # Chế độ thêm dấu từ câu không dấu
+            input_text = input("Nhập câu không dấu: ").strip()
+            prediction = model.predict(input_text)
+            print(f"Dự đoán thêm dấu: {prediction}")
+
+        else:
+            print("Lựa chọn không hợp lệ. Vui lòng chọn 1, 2 hoặc q.")
+
 
 if __name__ == "__main__":
     main()

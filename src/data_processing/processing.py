@@ -1,88 +1,72 @@
 # src/data_processing/processing.py
-import unidecode
+import torch
+import string
+from typing import List
 
-def remove_vietnamese_accent(text):
-    # Input: string
-    # Output: string
-    # Example: remove_vietnamese_accent("Hôm nay trời đẹp quá!") -> "Hom nay troi dep qua!"
-    # ---
-    # Use:
-    # original_text = "Tôi yêu Việt Nam"
-    # text_without_accent = remove_vietnamese_accent(original_text)
-    # print(text_without_accent)
-    # # Result: "Toi yeu Viet Nam"
-    # ---
-    # pip install unidecode
-    return unidecode.unidecode(text)
+# Bảng dictionary ký tự
+input_dictionary = list("aáàảãạăắằẳẵặâấầẩẫậdđeéèẻẽẹêếềểễệiíìỉĩịoóòỏõọôốồổỗộơớờởỡợuúùủũụưứừửữựyýỳỷỹỵ") + list("bcfghjklmnpqrstvwxz0123456789 ") + list(string.punctuation)
+# punctuation is '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+# 136 character
 
-def convert_text_to_unicode(text, token_size:int=150):
-    # Input: string
-    # Output: list
-    # Example: convert_text_to_unicode("Hom nay troi dep qua!")
-    # -> [72, 111, 109, 32, 110, 97, 121, 32, 116, 114, 111, 105, 32, 100, 101, 112, 32, 113, 117, 97, 33]
-    # ---
-    # Use:
-    # text = "Hom nay troi dep qua!"
-    # unicode_text = convert_text_to_unicode(text)
-    # print(unicode_text)
-    # # Result: [72, 111, 109, 32, 110, 97, 121, 32, 116, 114, 111, 105, 32, 100, 101, 112, 32, 113, 117, 97, 33]
-    # ---
-    # return [ord(char) for char in text]
-    result = [ord(char) for char in text]
-    if len(result) > token_size:
-        result = result[:token_size]
-    elif len(result) < token_size:
-        result += [0] * (token_size - len(result))  # 0 is the null character
-    return result
+# Tạo ánh xạ ký tự -> index
+char_to_index = {char: idx + 1 for idx, char in enumerate(input_dictionary)}  # +1 để 0 dùng cho padding
+max_length = 150  # Độ dài tối đa của chuỗi
 
-def test_remove_vietnamese_accent():
-    assert remove_vietnamese_accent("Hôm nay trời đẹp quá!") == "Hom nay troi dep qua!"
-    assert remove_vietnamese_accent("Tôi yêu Việt Nam") == "Toi yeu Viet Nam"
-    print("PASSED: test_remove_vietnamese_accent()")
+def convert_text_to_indices(text: str, token_size: int = max_length, char_to_index=char_to_index) -> List[int]:
+    """
+    Chuyển đổi câu thành danh sách index dựa trên dictionary.
+    Nếu độ dài câu < token_size thì thêm padding; nếu dài hơn thì cắt ngắn.
+    """
+    indices = [char_to_index.get(char, 0) for char in text.lower()]  # 0 cho ký tự không có trong dictionary
+    if len(indices) > token_size:
+        indices = indices[:token_size]
+    else:
+        indices += [0] * (token_size - len(indices))  # Padding với giá trị 0
+    return indices
 
-def test_convert_text_to_unicode():
-    assert convert_text_to_unicode("Hom nay troi dep qua!") == [72, 111, 109, 32, 110, 97, 121, 32, 116, 114, 111, 105, 32, 100, 101, 112, 32, 113, 117, 97, 33] + [0] * 129
-    print("PASSED: test_convert_text_to_unicode()")
+def process_and_save_data(input_file_path: str, output_file_path: str):
+    """
+    Xử lý file đầu vào, chuyển đổi các câu thành vector chỉ số, và lưu kết quả.
+    """
+    X, y = [], []
+    with open(input_file_path, "r", encoding="utf-8") as f_in, \
+         open(output_file_path, "r", encoding="utf-8") as f_out:
+        input_lines = f_in.readlines()
+        output_lines = f_out.readlines()
 
-def test():
-    test_remove_vietnamese_accent()
-    test_convert_text_to_unicode()
+        if len(input_lines) != len(output_lines):
+            raise ValueError("Số dòng trong file đầu vào và đầu ra không khớp.")
 
-# test()
+        for in_line, out_line in zip(input_lines, output_lines):
+            in_vector = convert_text_to_indices(in_line.strip())
+            out_vector = convert_text_to_indices(out_line.strip())
+            X.append(in_vector)
+            y.append(out_vector)
+
+    # Chuyển đổi thành Tensor và lưu file
+    X_tensor = torch.tensor(X, dtype=torch.long)
+    y_tensor = torch.tensor(y, dtype=torch.long)
+    torch.save(X_tensor, "./data/processed/X_transformer.pt")
+    torch.save(y_tensor, "./data/processed/y_transformer.pt")
+    print(f"Processed {len(X)} samples. Saved: X -> X_transformer.pt, y -> y_transformer.pt")
+
+def load_processed_data(X_file_path="./data/processed/X_transformer.pt", y_file_path="./data/processed/y_transformer.pt"):
+    """
+    Tải dữ liệu đã được xử lý từ file.
+    """
+    X = torch.load(X_file_path)
+    y = torch.load(y_file_path)
+    print(f"Data loaded: X -> {X.shape}, y -> {y.shape}")
+    return X, y
 
 def main():
-    # Remove Vietnamese accent from a text file and save the result to another file
-    print("Starting remove Vietnamese accent from a text file and save the result to another file ...")
-    file_to_process = "./data/raw/corpus-title.txt" # Output data for the model
-    file_to_save_no_accent = "./data/processed/corpus-title-no-accent.txt"  # Input data for the model
-    with open(file_to_process, "r", encoding="utf-8") as f_in, \
-         open(file_to_save_no_accent, "w", encoding="utf-8") as f_out:
-        for line in f_in:
-            # Loại bỏ dấu tiếng Việt khỏi từng dòng
-            no_accent_line = remove_vietnamese_accent(line.strip())
-            f_out.write(no_accent_line + "\n")
-    print("Done!")
+    # input_file_path = "./data/raw/input.txt"  # File đầu vào
+    # output_file_path = "./data/raw/output.txt"  # File đầu ra
+    input_file_path = "./data/processed/corpus-title-no-accent.txt"  # File đầu vào
+    output_file_path = "./data/raw/corpus-title.txt"  # File đầu ra
 
-    # Convert the original file to Unicode and save the result to another file
-    print("Starting convert the original file to Unicode and save the result to another file ...")
-    file_to_save_unicode = "./data/processed/corpus-title-unicode.txt"  # Output data for the model
-    with open(file_to_process, "r", encoding="utf-8") as f_in, \
-         open(file_to_save_unicode, "w", encoding="utf-8") as f_out:
-        for line in f_in:
-            # Chuyển đổi từng dòng thành danh sách Unicode
-            unicode_list = convert_text_to_unicode(line.strip())
-            # Lưu danh sách Unicode (dạng chuỗi) vào file
-            f_out.write(" ".join(map(str, unicode_list)) + "\n")
-    print("Done!")
+    process_and_save_data(input_file_path, output_file_path)
+    X, y = load_processed_data() # "X_transformer.pt", "y_transformer.pt"
 
-    # Convert the no-accent file to Unicode and save the result to another file
-    print("Starting convert the no-accent file to Unicode and save the result to another file ...")
-    file_to_save_no_accent_unicode = "./data/processed/corpus-title-no-accent-unicode.txt"  # Input data for the model
-    with open(file_to_save_no_accent, "r", encoding="utf-8") as f_in, \
-         open(file_to_save_no_accent_unicode, "w", encoding="utf-8") as f_out:
-        for line in f_in:
-            # Chuyển đổi từng dòng không dấu thành danh sách Unicode
-            unicode_list = convert_text_to_unicode(line.strip())
-            # Lưu danh sách Unicode (dạng chuỗi) vào file
-            f_out.write(" ".join(map(str, unicode_list)) + "\n")
-    print("Done!")
+if __name__ == "__main__":
+    main()

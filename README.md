@@ -1,19 +1,17 @@
 # How to reconstruct Vietnamese diacritics
 
-## Data processing & model training
+## Data collection, processing & model training
 ```bash
-nohup python main.py processing > logs/data_processing.log 2>&1 &
-# about 7m
-nohup python main.py building > logs/model_building.log 2>&1 &
-# about 20m (on CPU 20 cores) for loading data
-# about 30-60 GB of RAM be used to train the model
-# with batch_size=20 * 10**3 * 6 * 3
-# about 1h to train the model with 20 epochs
+# make text without diacritics from raw text
+nohup python main.py collection > logs/data_collection_0_0_1.log 2>&1 &
+# make X, y from text without diacritics and raw text
+nohup python main.py processing > logs/data_processing_0_0_1.log 2>&1 &
+# train model
+nohup python main.py building > logs/model_building_0_0_1.log 2>&1 &
 ```
 
 ## Try to reconstruct Vietnamese diacritics
 ```bash
-# nohup python main.py use_app > logs/app.log 2>&1 &
 python main.py use_app
 ```
 
@@ -23,24 +21,37 @@ python main.py model_info
 ```
 Result:
 ```
-ANN(
-  (model): Sequential(
-    (0): Linear(in_features=150, out_features=150, bias=True)
-    (1): ReLU()
-    (2): Dropout(p=0.2, inplace=False)
-    (3): Linear(in_features=150, out_features=150, bias=True)
-    (4): ReLU()
-    (5): Dropout(p=0.2, inplace=False)
-    (6): Linear(in_features=150, out_features=150, bias=True)
-    (7): ReLU()
-    (8): Dropout(p=0.2, inplace=False)
-    (9): Linear(in_features=150, out_features=150, bias=True)
-    (10): ReLU()
-    (11): Dropout(p=0.2, inplace=False)
-    (12): Linear(in_features=150, out_features=150, bias=True)
-    (13): ReLU()
+Transformer(
+  (embedding): Embedding(137, 128)
+  (encoder_layer): TransformerEncoderLayer(
+    (self_attn): MultiheadAttention(
+      (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+    )
+    (linear1): Linear(in_features=128, out_features=256, bias=True)
+    (dropout): Dropout(p=0.1, inplace=False)
+    (linear2): Linear(in_features=256, out_features=128, bias=True)
+    (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+    (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+    (dropout1): Dropout(p=0.1, inplace=False)
+    (dropout2): Dropout(p=0.1, inplace=False)
   )
-  (output_layer): Linear(in_features=150, out_features=150, bias=True)
+  (encoder): TransformerEncoder(
+    (layers): ModuleList(
+      (0-6): 7 x TransformerEncoderLayer(
+        (self_attn): MultiheadAttention(
+          (out_proj): NonDynamicallyQuantizableLinear(in_features=128, out_features=128, bias=True)
+        )
+        (linear1): Linear(in_features=128, out_features=256, bias=True)
+        (dropout): Dropout(p=0.1, inplace=False)
+        (linear2): Linear(in_features=256, out_features=128, bias=True)
+        (norm1): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (norm2): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+        (dropout1): Dropout(p=0.1, inplace=False)
+        (dropout2): Dropout(p=0.1, inplace=False)
+      )
+    )
+  )
+  (output_layer): Linear(in_features=128, out_features=75, bias=True)
 )
-Number of parameters: 135900
+Number of parameters: 1087051
 ```

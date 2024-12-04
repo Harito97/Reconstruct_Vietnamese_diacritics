@@ -109,7 +109,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     # Train the model
-    train_model(model, "transformer", train_loader, val_loader, criterion, optimizer, epochs=20, device=device)
+    train_model(model, train_loader, val_loader, criterion, optimizer, epochs=20, device=device)
 
 if __name__ == "__main__":
     main()

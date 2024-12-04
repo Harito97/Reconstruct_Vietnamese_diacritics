@@ -1,20 +1,7 @@
 import torch
 import unidecode
+from src.data_collection.data_no_accent import remove_vietnamese_accent
 from src.model_building.model import Transformer
-
-def remove_vietnamese_accent(text):
-    # Input: string
-    # Output: string
-    # Example: remove_vietnamese_accent("Hôm nay trời đẹp quá!") -> "Hom nay troi dep qua!"
-    # ---
-    # Use:
-    # original_text = "Tôi yêu Việt Nam"
-    # text_without_accent = remove_vietnamese_accent(original_text)
-    # print(text_without_accent)
-    # # Result: "Toi yeu Viet Nam"
-    # ---
-    # pip install unidecode
-    return unidecode.unidecode(text)
 
 def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

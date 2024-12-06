@@ -5,9 +5,11 @@
 # make text without diacritics from raw text
 # Da chay file nay 1 lan nhung o phien ban 0.0.0
 nohup python main.py collection > logs/data_collection_0_0_1.log 2>&1 &
-# make X, y from text without diacritics and raw text
+# make X, y from text without diacritics and raw text: about 10m
 nohup python main.py processing > logs/data_processing_0_0_1.log 2>&1 &
-# train model
+#Processed 9487416 samples. Saved: X -> X_transformer.pt, y -> y_transformer.pt
+#Data loaded: X -> torch.Size([9487416, 150]), y -> torch.Size([9487416, 150])
+# train model: on dinh quanh muc < 30GB, 3h10 =>
 nohup python main.py building > logs/model_building_0_0_1.log 2>&1 &
 ```
 

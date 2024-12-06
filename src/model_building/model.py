@@ -8,6 +8,7 @@ import math
 class Model(nn.Module):
     def __init__(self):
         super(Model, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def forward(self, x):
         pass
@@ -20,11 +21,10 @@ class Model(nn.Module):
             print(f"Number of parameters: {num_parameters}")
 
     def save(self, model_path):
-        torch.save({'model_state_dict': self.state_dict()}, model_path)
+        torch.save(self.state_dict(), model_path)
 
     def load_model(self, model_path):
-        checkpoint = torch.load(model_path)
-        self.load_state_dict(checkpoint['model_state_dict'])
+        self.load_state_dict(torch.load(model_path, map_location=self.device, weight_only=True))
         self.eval()
         return self
 
@@ -54,7 +54,6 @@ class Transformer(Model):
 
         self.char_to_index = {char: i + 1 for i, char in enumerate(input_dictionary)}
         self.index_to_char = {i + 1: char for i, char in enumerate(output_dictionary)}
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.positional_encoding = self.create_positional_encoding(max_seq_len, emb_dim)
 
     def create_positional_encoding(self, seq_len, emb_dim):

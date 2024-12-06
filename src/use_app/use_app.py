@@ -1,5 +1,4 @@
 import torch
-import unidecode
 from src.data_collection.data_no_accent import remove_vietnamese_accent
 from src.model_building.model import Transformer
 

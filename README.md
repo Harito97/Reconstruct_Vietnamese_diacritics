@@ -1,6 +1,12 @@
 # How to reconstruct Vietnamese diacritics
 
-### Data Collection, Processing & Model Training
+## Data Preparation
+
+This project utilizes nearly 10 million Vietnamese sentences collected by the research team at [news-corpus](https://github.com/binhvq/news-corpus).
+
+To download the dataset (corpus-title.txt - 578MB), please visit the following link: [Google Drive](https://drive.usercontent.google.com/download?id=1ypvEoGRNWrNLmW246RtBm9iMyKXm_2BP&export=download&authuser=0).
+
+## Data Collection, Processing & Model Training
 
 ```bash
 # Generate text without diacritics from raw text
@@ -15,7 +21,7 @@ nohup python main.py collection > logs/data_collection_0_0_1.log 2>&1 &
 nohup python main.py processing > logs/data_processing_0_0_1.log 2>&1 &
 # Processed 9,487,416 samples. Saved: X -> X_transformer.pt, y -> y_transformer.pt
 
-# Train the model: memory usage stabilized below 30GB, 3 hours and 10 minutes per epoch.
+# Train the model: memory usage stabilized below 30GB.
 # The first epoch took approximately 30 hours.
 nohup python main.py building > logs/model_building_0_0_1.log 2>&1 &
 # Data loaded: X -> torch.Size([9487416, 150]), y -> torch.Size([9487416, 150])
@@ -28,7 +34,7 @@ nohup python main.py building > logs/model_building_0_0_1.log 2>&1 &
 
 ---
 
-### Reconstructing Vietnamese Diacritics
+## Reconstructing Vietnamese Diacritics
 
 Below are the demo results using the model trained for one epoch (approximately 30 hours of training).
 - Training dataset: 8 million sentences.

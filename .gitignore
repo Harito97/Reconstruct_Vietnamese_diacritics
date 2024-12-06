@@ -1,12 +1,21 @@
 # temp
 temp*
+
 # run files
 *__pycache__*
 
 # to large to be uploaded
-data/corpus-title.tar.gz
+data/corpus-title.tar.gz                                # raw data = y_preprocess
 
-data/raw/corpus-title.txt
-data/processed/corpus-title-no-accent.txt
-data/processed/corpus-title-unicode.txt
-data/processed/corpus-title-no-accent-unicode.txt
+data/raw/corpus-title.txt                               # y_preprocess for ANN & Transformer model
+data/processed/corpus-title-no-accent.txt               # X_preprocess for ANN & Transformer model
+data/processed/corpus-title-unicode.txt                 # y for ANN model
+data/processed/corpus-title-no-accent-unicode.txt       # X for ANN model
+
+# models
+models/*.h5
+models/*.json
+models/*.joblib
+models/*.pkl
+models/*.pt
+models/*.pth

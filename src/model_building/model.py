@@ -71,7 +71,7 @@ class Transformer(Model):
         return self.output_layer(x)
 
     def encode_text(self, text):
-        encoded = [self.char_to_index.get(char, 0) for char in text]
+        encoded = [self.char_to_index.get(char, 0) for char in text.lower()]
         max_len = self.positional_encoding.size(1)
         if len(encoded) > max_len:
             encoded = encoded[:max_len]

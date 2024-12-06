@@ -81,12 +81,23 @@ class Transformer(Model):
 
     def decode_predictions(self, predictions, original_text):
         result = []
-        for i, idx in enumerate(predictions):
-            if idx == 0:
-                result.append(original_text[i] if i < len(original_text) else '')
+        lower_text = original_text.lower()
+
+        for index, char in enumerate(original_text):
+            # Nếu vượt quá độ dài predictions, giữ nguyên ký tự gốc
+            if index >= len(predictions):
+                result.append(char)
+            # Nếu ký tự không có trong từ điển output, giữ nguyên ký tự gốc
+            elif lower_text[index] not in self.output_dictionary:
+                result.append(char)
+            # Nếu dự đoán là 0, giữ nguyên ký tự gốc
+            elif predictions[index] == 0:
+                result.append(char)
+            # Nếu có dự đoán, chuyển đổi theo `self.index_to_char`
             else:
-                result.append(self.index_to_char.get(idx, ''))
+                result.append(self.index_to_char.get(predictions[index], ''))
         return ''.join(result)
+
 
     def predict(self, text):
         encoded_input = self.encode_text(text).to(self.device)

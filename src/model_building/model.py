@@ -24,7 +24,7 @@ class Model(nn.Module):
         torch.save(self.state_dict(), model_path)
 
     def load_model(self, model_path):
-        self.load_state_dict(torch.load(model_path, map_location=self.device, weight_only=True))
+        self.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
         self.eval()
         return self
 

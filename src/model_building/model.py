@@ -95,7 +95,11 @@ class Transformer(Model):
                 result.append(char)
             # Nếu có dự đoán, chuyển đổi theo `self.index_to_char`
             else:
-                result.append(self.index_to_char.get(predictions[index], ''))
+                predict = self.index_to_char.get(predictions[index], '')
+                if char.isupper():
+                    result.append(predict.upper())
+                else:
+                    result.append(predict)
         return ''.join(result)
 
 
